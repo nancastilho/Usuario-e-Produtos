@@ -1,0 +1,52 @@
+  #imagens img {
+    width: 200px;
+  }
+
+  .search-box input {
+    margin: 0;
+    font-family: inherit;
+    font-size: inherit;
+    line-height: normal;
+  }
+
+  #novoticket {
+    width: 1000px;
+  }
+
+  #edite {
+    width: 900px;
+  }
+
+  .cards {
+    padding: 20px;
+  }
+
+  .square {
+    border-bottom: solid 1px black;
+    border-right: solid 1px black;
+    border-left: solid 1px black;
+    text-align: center;
+    width: 300px;
+    padding-bottom: 10px;
+    border-radius: 10%;
+  }
+
+  .pedidos {
+    display: flex;
+    justify-content: space-around;
+  }
+
+  .basePendente {
+    background-color: #ffffff9f;
+    width: 800px;
+    border: solid 1px black;
+
+  }
+
+  .basePendente h1 {
+    border-bottom: #000 solid 1px;
+  }
+
+ 
+
+/* teste */
