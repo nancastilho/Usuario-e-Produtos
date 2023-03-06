@@ -31,20 +31,12 @@
                                     class="form-control form-control-lg" placeholder="Confirme sua Senha" />
                             </div>
 
-                            <div class="form-outline form-white mb-4">
-                                <select name="dep" value="{{ request.form['dep'] }}"
-                                    class="form-control form-control form-control-lg" required>
-                                    <option value="" disabled selected> Selecione um departamento</option>
-                                    {% for setor in setores %}
-                                    <option value="{{ setor['setor'] }}">{{ setor['setor'] }}</option>
-                                    {% endfor %}
-                                </select>
-                            </div>
                             <br>
                             {{ form.submit (class="btn btn-outline-light btn-lg px-5")}}
                         </form>
                         <br>
-                        <p class="">Já é cadastrado? <a href="{{ url_for('login')}}" class="text-white-50 fw-bold">Entrar</a>
+                        <p class="">Já é cadastrado? <a href="{{ url_for('login')}}"
+                                class="text-white-50 fw-bold">Entrar</a>
                         </p>
                     </div>
                 </div>

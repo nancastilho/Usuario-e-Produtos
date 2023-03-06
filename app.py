@@ -1,21 +1,28 @@
 import sqlite3
-from flask import Flask, render_template, request, url_for, flash, redirect
-from werkzeug.exceptions import abort
+import urllib.request
+import os
+from flask import Flask, render_template, request, url_for, flash, redirect, jsonify, request
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import UserMixin, login_user, LoginManager, login_required, logout_user, current_user
 from flask_wtf import FlaskForm
+from flask_bcrypt import Bcrypt
 from wtforms import StringField, PasswordField, SubmitField
 from wtforms.validators import InputRequired, Length, ValidationError
-from flask_bcrypt import Bcrypt
-
+from werkzeug.utils import secure_filename
+from werkzeug.exceptions import abort
+from zeep import Client
 
 
 app = Flask(__name__, static_url_path='/static')
+UPLOAD_FOLDER = 'static/images/'
 db = SQLAlchemy(app)
 bcrypt = Bcrypt(app)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///database.db'
 app.config['SECRET_KEY'] = 'your secret key'
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
 
+ALLOWED_EXTENSIONS = set(['png', 'jpg', 'jpeg', 'gif'])
 
 login_manager = LoginManager()
 login_manager.init_app(app)
@@ -26,20 +33,25 @@ login_manager.login_view = 'login'
 def load_user(user_id):
     return User.query.get(int(user_id))
 
+
 def get_db_connection():
     conn = sqlite3.connect('database.db')
     conn.row_factory = sqlite3.Row
     return conn
 
 
-def get_post(post_id):
+def get_produto(produto_id):
     conn = get_db_connection()
-    post = conn.execute('SELECT * FROM posts WHERE id = ?',
-                        (post_id,)).fetchone()
+    produto = conn.execute('SELECT * FROM produtos WHERE id = ?',
+                           (produto_id,)).fetchone()
     conn.close()
-    if post is None:
+    if produto is None:
         abort(404)
-    return post
+    return produto
+
+
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 
 def get_setor(setor_id):
@@ -51,22 +63,21 @@ def get_setor(setor_id):
         abort(404)
     return setor
 
+
 class User(db.Model, UserMixin):
     id = db.Column(db.Integer, primary_key=True)
     nome = db.Column(db.String(20), nullable=False)
     username = db.Column(db.String(20), nullable=False, unique=True)
-    departamento = db.Column(db.String(80), nullable=False)
     password = db.Column(db.String(80), nullable=False)
 
+
 class RegisterForm(FlaskForm):
-  
+
     nome = StringField(validators=[
-                           InputRequired(), Length(min=4, max=20)], render_kw={"placeholder": "Nome"})
+        InputRequired(), Length(min=4, max=20)], render_kw={"placeholder": "Nome"})
 
     username = StringField(validators=[
-                           InputRequired(), Length(min=4, max=50)], render_kw={"placeholder": "Email"})    
-    
-    departamento = ''
+                           InputRequired(), Length(min=4, max=50)], render_kw={"placeholder": "Email"})
 
     password = PasswordField(validators=[
                              InputRequired(), Length(min=8, max=20)], render_kw={"placeholder": "Senha"})
@@ -90,8 +101,10 @@ class LoginForm(FlaskForm):
 
     submit = SubmitField('Entrar')
 
+# ROTAS DE USUARIO
 
-@app.route('/', methods=['GET', 'POST'])
+
+@app.route('/login', methods=['GET', 'POST'])
 def login():
     form = LoginForm()
     if form.validate_on_submit():
@@ -103,67 +116,100 @@ def login():
     return render_template('login.html', form=form)
 
 
-@app.route('/logout', methods=['GET', 'POST'])
+@app.route('/sair', methods=['GET', 'POST'])
 @login_required
 def logout():
     logout_user()
     return redirect(url_for('login'))
 
 
-@ app.route('/register', methods=['GET', 'POST'])
+@ app.route('/registrar', methods=['GET', 'POST'])
 def register():
     form = RegisterForm()
-    conn = get_db_connection()
-    setores = conn.execute('SELECT * FROM setores').fetchall()
-    conn.close()
     if form.validate_on_submit() and request.method == 'POST':
         hashed_password = bcrypt.generate_password_hash(form.password.data)
-        new_user = User(nome=form.nome.data, username=form.username.data, departamento=request.form['dep'], password=hashed_password)
+        new_user = User(nome=form.nome.data,
+                        username=form.username.data, password=hashed_password)
         db.session.add(new_user)
         db.session.commit()
         return redirect(url_for('login'))
 
-    return render_template('register.html', form=form, setores=setores)
+    return render_template('register.html', form=form)
+
+# ACABA ROTAS DE USUARIO
 
 
-@app.route('/home', methods=('GET', 'POST'))
+@app.route('/', methods=('GET', 'POST'))
+def indexOf():
+    conn = get_db_connection()
+    produtos = conn.execute(
+        "SELECT * FROM produtos").fetchall()
+    conn.close()
+    if request.method == 'POST':
+        buscar = request.form['buscar']
+        conn = get_db_connection()
+        produtos = conn.execute(
+            "SELECT * FROM produtos WHERE departamentos LIKE ? or produto LIKE ?  ", ('%'+buscar+'%', '%'+buscar+'%',)).fetchall()
+        conn.close()
+        return render_template('indexOf.html', produtos=produtos)
+
+    return render_template('indexOf.html', produtos=produtos)
+
+
+@app.route('/orderof', methods=('GET', 'POST'))
+def orderof():
+    if request.method == 'POST':
+        ordem = request.form['ordem']
+        conn = get_db_connection()
+        produtos = conn.execute(
+            "select CAST(preco AS DECIMAL(7,2)) as Valor , * from produtos Where estoqueLoja >=1 order by valor "+ordem+"",).fetchall()
+        conn.close()
+        return render_template('indexOf.html', produtos=produtos)
+
+
+@app.route('/<int:produto_id>/of')
+def produtoOf(produto_id):
+    produto = get_produto(produto_id)
+    return render_template('produtoOf.html', produto=produto)
+
+
+@app.route('/admin', methods=('GET', 'POST'))
 @login_required
-def index():    
+def index():
+
     dep = current_user.username
     conn = get_db_connection()
-    posts = conn.execute("SELECT * FROM posts WHERE departamentos LIKE (SELECT departamento FROM user WHERE username = ?)", [dep]).fetchall()
+    produtos = conn.execute("SELECT * FROM produtos").fetchall()
     conn.close()
     print(dep)
     if request.method == 'POST':
-            buscar = request.form['buscar']
-            conn = get_db_connection()
-            posts = conn.execute(
-                            "SELECT * FROM posts WHERE status LIKE ? or id LIKE ? or departamentos LIKE ? or title LIKE ?", ('%'+buscar+'%', '%'+buscar+'%', '%'+buscar+'%', '%'+buscar+'%',)).fetchall()
-            conn.close()
-            return render_template('indexnew.html', posts=posts)
+        buscar = request.form['buscar']
+        conn = get_db_connection()
+        produtos = conn.execute(
+            "SELECT * FROM produtos WHERE departamentos LIKE ? or produto LIKE ?", ('%'+buscar+'%', '%'+buscar+'%',)).fetchall()
+        conn.close()
+        return render_template('index.html', produtos=produtos)
 
-    return render_template('indexnew.html', posts=posts)
+    return render_template('index.html', produtos=produtos)
 
 
-@app.route('/graph', methods=('GET', 'POST'))
+@app.route('/order', methods=('GET', 'POST'))
 @login_required
-def graph():
-    conn = get_db_connection()
-    posts = conn.execute(
-        'SELECT departamentos, COUNT(*) AS total FROM posts GROUP BY departamentos').fetchall()
-    conn.close()
-    return render_template('graph.html', posts=posts)
+def order():
+    if request.method == 'POST':
+        ordem = request.form['ordem']
+        conn = get_db_connection()
+        produtos = conn.execute(
+            "select CAST(preco AS DECIMAL(7,2)) as Valor , * from produtos order by valor "+ordem+"",).fetchall()
+        conn.close()
+        return render_template('index.html', produtos=produtos)
 
 
-@app.route('/<int:post_id>')
-def post(post_id):
-    post = get_post(post_id)
-    return render_template('post.html', post=post)
-
-
-@app.route('/manual')
-def manual():
-    return render_template('manual.html')
+@app.route('/<int:produto_id>')
+@login_required
+def produto(produto_id):
+    produto = get_produto(produto_id)
+    return render_template('produto.html', produto=produto)
 
 
 @app.route('/inseredep', methods=('GET', 'POST'))
@@ -171,34 +217,67 @@ def inseredep():
     if request.method == 'POST':
         setor = request.form['insereDep']
         vf = 'v'
-        
+
         conn = get_db_connection()
         conn.execute('INSERT INTO setores (setor, vf) VALUES (?, ?)',
-                            (setor, vf))
+                     (setor, vf))
         conn.commit()
         conn.close()
         return redirect(url_for('create'))
 
-@app.route('/create', methods=('GET', 'POST'))
+
+@app.route('/<int:produto_id>/novaimg', methods=('GET', 'POST'))
+def novaimg(produto_id):
+    if request.method == 'POST':
+        file = request.files['file']
+        anexos = file.filename.replace(" ", "_")
+        if not file:
+            flash('É necessário selecionar para salvar!')
+        else:
+            filename = secure_filename(file.filename)
+            file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+            conn = get_db_connection()
+            conn.execute('UPDATE produtos SET anexos =?'
+                         ' WHERE id = ?',
+                         (anexos, produto_id))
+            conn.commit()
+            conn.close()
+            return redirect(url_for('edit', id=produto_id))
+
+
+@app.route('/consultar-cep', methods=['POST'])
+def consultar_cep():
+    client = Client(
+        'https://apps.correios.com.br/SigepMasterJPA/AtendeClienteService/AtendeCliente?wsdl')
+    data = client.service.consultaCEP(request.form.get('cep'))
+    data = data.__dict__
+
+    return jsonify(data['__values__'])
+
+
+@app.route('/novoproduto', methods=('GET', 'POST'))
 @login_required
 def create():
     conn = get_db_connection()
     setores = conn.execute('SELECT * FROM setores').fetchall()
     conn.close()
     if request.method == 'POST':
-        title = request.form['title']
-        content = request.form['content']
-        conclusao = request.form['conclusao']
+        file = request.files['file']
+        produto = request.form['produto']
+        descricao = request.form['descricao']
+        preco = request.form['preco']
         departamentos = request.form['departamentos']
-        status = request.form['status']
-        anexos = request.form['anexos']
+        estoqueLoja = request.form['estoqueLoja']
+        anexos = file.filename.replace(" ", "_")
 
-        if not title:
+        if not produto:
             flash('É necessário ter um título!')
         else:
+            filename = secure_filename(file.filename)
+            file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
             conn = get_db_connection()
-            conn.execute('INSERT INTO posts (title, content, conclusao, departamentos, status, anexos) VALUES (?, ?, ?, ?, ?, ?)',
-                         (title, content, conclusao, departamentos, status, anexos))
+            conn.execute('INSERT INTO produtos (produto, descricao, preco, departamentos, estoqueLoja, anexos) VALUES (?, ?, ?, ?, ?, ?)',
+                         (produto, descricao, preco, departamentos, estoqueLoja, anexos))
             conn.commit()
             conn.close()
             return redirect(url_for('index'))
@@ -206,50 +285,49 @@ def create():
     return render_template('create.html', setores=setores)
 
 
-@app.route('/<int:id>/edit', methods=('GET', 'POST'))
+@app.route('/<int:id>/editar', methods=('GET', 'POST'))
 def edit(id):
-    post = get_post(id)
+    produto = get_produto(id)
     conn = get_db_connection()
     setores = conn.execute('SELECT * FROM setores').fetchall()
     conn.close()
 
     if request.method == 'POST':
-        title = request.form['title']
-        content = request.form['content']
-        conclusao = request.form['conclusao']
+        produto = request.form['produto']
+        descricao = request.form['descricao']
+        preco = request.form['preco']
         departamentos = request.form['departamentos']
-        status = request.form['status']
-        anexos = request.form['anexos']
+        estoqueLoja = request.form['estoqueLoja']
 
-        if not title:
+        if not produto:
             flash('É necessário ter um título!')
         else:
             conn = get_db_connection()
-            conn.execute('UPDATE posts SET title = ?, content = ?, conclusao = ?, departamentos = ?, status = ?, anexos = ?'
+            conn.execute('UPDATE produtos SET produto = ?, descricao = ?, preco = ?, departamentos = ?, estoqueLoja = ?'
                          ' WHERE id = ?',
-                         (title, content, conclusao, departamentos, status, anexos, id))
+                         (produto, descricao, preco, departamentos, estoqueLoja, id))
             conn.commit()
             conn.close()
             return redirect(url_for('index'))
 
-    return render_template('edit.html', post=post, setores=setores)
+    return render_template('edit.html', produto=produto, setores=setores)
 
 
 @app.route('/<int:id>/delete', methods=('POST',))
 def delete(id):
-    post = get_post(id)
+    produto = get_produto(id)
     conn = get_db_connection()
-    conn.execute('DELETE FROM posts WHERE id = ?', (id,))
+    conn.execute('DELETE FROM produtos WHERE id = ?', (id,))
     conn.commit()
     conn.close()
-    flash('"{}" deletado com sucesso'.format(post['title']))
+    flash('"{}" deletado com sucesso'.format(produto['produto']))
     return redirect(url_for('index'))
 
 
 if __name__ == "__main__":
     app.run(debug=True)
 
-# @app.route('/cadastro', methods=('GET', 'POST'))
+# @app.route('/cadastro', methods=('GET', 'produto'))
 # def cadastro():
 #     conn = get_db_connection()
 #     setores = conn.execute('SELECT * FROM setores').fetchall()

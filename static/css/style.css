@@ -1,52 +1,97 @@
-  #imagens img {
-    width: 200px;
-  }
+ /* PRODUTO */
 
-  .search-box input {
-    margin: 0;
-    font-family: inherit;
-    font-size: inherit;
-    line-height: normal;
-  }
+ #imagens {
+   width: 500px;
+   border-radius: 2%;
+   height: 400px;
+ }
 
-  #novoticket {
-    width: 1000px;
-  }
+ .baseProd {
+   height: 80%;
+   background-color: rgb(241, 241, 241);
+   border-radius: 1.5%;
+   border: 1px;
+   border-style: ridge;
 
-  #edite {
-    width: 900px;
-  }
+ }
 
-  .cards {
-    padding: 20px;
-  }
 
-  .square {
-    border-bottom: solid 1px black;
-    border-right: solid 1px black;
-    border-left: solid 1px black;
-    text-align: center;
-    width: 300px;
-    padding-bottom: 10px;
-    border-radius: 10%;
-  }
+ #nomeProduto {
+   overflow: hidden;
+   text-overflow: ellipsis;
+   display: -webkit-box;
+   -webkit-line-clamp: 2;
+   -webkit-box-orient: vertical;
+ }
 
-  .pedidos {
-    display: flex;
-    justify-content: space-around;
-  }
+ #largComp {
+   width: 340px;
+ }
 
-  .basePendente {
-    background-color: #ffffff9f;
-    width: 800px;
-    border: solid 1px black;
 
-  }
 
-  .basePendente h1 {
-    border-bottom: #000 solid 1px;
-  }
+ /* FIM PRODUTO */
 
+
+ /* nav */
+ .search-box input {
+   margin: 0;
+   font-family: inherit;
+   font-size: inherit;
+   line-height: normal;
+ }
+
+ /* fim nav */
+
+
+ /* lista */
+
+
+ #card {
+   height: 360px;
+   margin: 10px;
+   border-radius: 2%;
+
+ }
+
+ .base {
+   display: flex;
+   flex-wrap: wrap;
+   width: 100%;
+   border-style: ridge 1px;
+   background-color: rgb(241, 241, 241);
+   border-radius: 1.5%;
+ }
+
+ #indexProduto {
+   max-width: 310px;
+   white-space: nowrap;
+   overflow: hidden;
+   text-overflow: ellipsis;
+ }
+
+ #imgCard {
+   min-height: 200px;
+   max-height: 200px;
+
+ }
+
+ #ordem select {
+   width: 100px;
+ }
+
+ #ordem label {
+   margin-right: 5px;
+ }
+
+ /* fim lista */
+
+ /* Edit */
+ .imagemEdit img{
+  width: 100px;
+ }
+
+ .imagemEdit button{
+  height: 35px;
+ }
  
-
-/* teste */

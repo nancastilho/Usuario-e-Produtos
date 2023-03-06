@@ -1,64 +1,138 @@
 {% extends 'base.html' %}
 
 {% block content %}
-<h1 class="text-center">{% block title %} Edite  o Ticket nº {{ post['id'] }} {% endblock %}</h1>
+<h1 class="text-center">{% block produto %} Edite do Produto: {{ produto['id'] }}-{{ produto['produto'] }}{% endblock %}
+</h1>
 
 
 
-<form method="post">
+<form method="POST" enctype="multipart/form-data" name="edit">
+
+
     <div class="form-group">
-        <label for="title">Titulo</label>
-        <input type="text" name="title" placeholder="Post title" class="form-control"
-            value="{{ request.form['title'] or post['title'] }}">
-        
+        <label for="produto">Nome do Produto</label>
+        <input type="text" name="produto" placeholder="produto" class="form-control"
+            value="{{ request.form['produto'] or produto['produto'] }}">
+
     </div>
 
     <div class="form-group">
-        <label for="conclusao">Conclusão</label>
-        <input class="form-control" type="text" name="conclusao" placeholder="dd/mm/yyyy" onkeyup="
-        var v = this.value;
-        if (v.match(/^\d{2}$/) !== null) {
-            this.value = v + '/';
-        } else if (v.match(/^\d{2}\/\d{2}$/) !== null) {
-            this.value = v + '/';
-        }" maxlength="10" value="{{ request.form['title'] or post['conclusao'] }}">
-        
+        <label for="preco">Preço R$</label><br>
+        <input type="text" name="preco" placeholder="R$1,00" size="12" class="form-control"
+            onKeyUp="mascaraMoeda(this, event)" value="{{ request.form['preco'] or produto['preco']}}">
     </div>
 
     <div class="form-group">
-        <label for="status">Status</label><br>
-        <select name="status" value="{{ request.form['status'] }}" class="form-control">
-            <option value="pendente">Pendente</option>
-            <option value="desenvolvendo">Em Andamento</option>
-            <option value="concluido">Concluido</option>
-        </select>
+        <label for="estoqueLoja">Estoque</label><br>
+        <input type="text" name="estoqueLoja" placeholder="Quantia em Estoque" class="form-control"
+            value="{{ request.form['estoqueLoja'] or produto['estoqueLoja']}}">
     </div>
 
     <div class="form-group">
         <label for="departamentos">Departamentos</label><br>
-        <select name="departamentos" value="{{ request.form['departamentos'] }}" class="form-control">
-            {% for setor in setores %}
-            <option value="{{ setor['setor'] }}">{{ setor['setor'] }}</option>
-            {% endfor %}
-        </select>
+        <div class="d-flex">
+            <select name="departamentos" value="{{ request.form['departamentos'] }}" class="form-control" required>
+                <option value="{{produto['departamentos']}}"> {{produto['departamentos']}}</option>
+                {% for setor in setores %}
+                <option value="{{ setor['setor'] }}">{{ setor['setor'] }}</option>
+                {% endfor %}
+            </select>
+            <button type="button" class="abrirModal btn btn-light" id="insereDep">+</button>
+        </div>
     </div>
-    <div class="form-group">
-        <label for="anexos">imagens</label>
-        <input type="file" name="anexos" class="form-control" value="{{ request.form['anexos'] and post['anexos'] }} ">
+
+    <div class="form-group d-flex imagemEdit align-items-center justify-content-between">
+        <img src="/static/images/{{ produto['anexos'] }}" alt="">
+        <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#exampleModal">
+            Alterar imagem
+        </button>
     </div>
 
     <div class="form-group">
-        <label for="content">Conteúdo</label>
-        <textarea name="content" placeholder="Post content"
-            class="form-control">{{ request.form['content'] or post['content'] }}</textarea>
+        <label for="descricao">Descrição</label>
+        <textarea name="descricao"
+            class="form-control">{{ request.form['descricao'] or produto['descricao'] }}</textarea>
     </div>
     <div class="form-group">
         <button type="submit" class="btn btn-primary">Salvar</button>
     </div>
 </form>
 <hr>
-<form action="{{ url_for('delete', id=post['id']) }}" method="POST">
+<form action="{{ url_for('delete', id=produto['id']) }}" method="POST">
     <input type="submit" value="Deletar" class="btn btn-danger btn-sm"
         onclick="return confirm('Você tem certeza que deseja deletar seu Ticket?')">
 </form>
+
+
+<div class="modal fade" id="myModal" tabindex="-1" role="dialog" aria-labelledby="myLargeModalLabel">
+    <div class="modal-dialog modal-sm" role="document">
+        <div class="modal-content">
+            <div class="modal-header d-flex justify-content-center">
+                <h5>Novo departamento</h5>
+            </div>
+            <form action="{{ url_for('inseredep') }}" method="post">
+                <div class="modal-body text-center">
+                    <input type="text" name="insereDep" placeholder="Novo departamento" class="form-control"
+                        value="{{ request.form['insereDep'] }}" required>
+
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Fechar</button>
+                    <button type="submit" class="btn btn-primary" name="id" value="{{produto['id']}}">Salvar</button>
+                </div>
+            </form>
+
+        </div>
+    </div>
+</div>
+
+<!-- Modal -->
+<div class="modal fade" id="exampleModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel"
+    aria-hidden="true">
+    <div class="modal-dialog modal-sm" role="document">
+        <div class="modal-content">
+            <div class="modal-header d-flex justify-content-center">
+                <h5>Selecione a imagem</h5>
+            </div>
+            <form action="{{ url_for('novaimg', produto_id=produto['id']) }}" method="post" enctype="multipart/form-data">
+                <div class="modal-body text-center">
+                    <input type="file" name="file" class="form-control" autocomplete="off" required>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Fechar</button>
+                    <button type="submit" class="btn btn-primary" name="id" value="{{produto['id']}}">Salvar</button>
+                </div>
+            </form>
+
+        </div>
+    </div>
+</div>
+<script>$(".abrirModal").click(function () {
+        var url = $(this).find("img").attr("src");
+        $("#myModal img").attr("src", url);
+        $("#myModal").modal("show");
+    });</script>
+
+<script>
+    String.prototype.reverse = function () {
+        return this.split('').reverse().join('');
+    };
+
+    function mascaraMoeda(campo, evento) {
+        var tecla = (!evento) ? window.event.keyCode : evento.which;
+        var valor = campo.value.replace(/[^\d]+/gi, '').reverse();
+        var resultado = "";
+        var mascara = "##.###.###,##".reverse();
+        for (var x = 0, y = 0; x < mascara.length && y < valor.length;) {
+            if (mascara.charAt(x) != '#') {
+                resultado += mascara.charAt(x);
+                x++;
+            } else {
+                resultado += valor.charAt(y);
+                y++;
+                x++;
+            }
+        }
+        campo.value = resultado.reverse();
+    }</script>
 {% endblock %}

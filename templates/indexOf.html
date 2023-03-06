@@ -1,0 +1,36 @@
+{% extends 'baseOf.html' %}
+{% block content %}
+<br>
+<form action="{{ url_for('orderof') }}" method="POST">
+    <div class="form-group d-flex justify-content-end align-items-end" id="ordem">
+        <label for="ordem">Ordenar por:</label>
+        <select name="ordem" value="{{ request.form['ordem'] }}" class="form-control" required>
+            <option value="" disabled selected> Selecione</option>
+            <option value="ASC">Menor preço</option>
+            <option value="DESC">Maior preço</option>
+        </select>
+        <button type="submit" class="btn btn-light border-secondary">+</button>
+    </div>
+</form>
+<div class="base">
+    {% for produto in produtos %}
+    {% if (produto['estoqueLoja']|int) >= 1 %} <div class="w-25">
+        <div class="card " id="card">
+            <a href="{{ url_for('produtoOf', produto_id=produto['id']) }}">
+                <img src="/static/images/{{ produto['anexos'] }}" id="imgCard" class="card-img-top" alt="" />
+                <div class="card-body">
+                    <div class="text-center">
+                        <h5 class="card-title" id="indexProduto">{{ produto['produto'] }} </h5>
+            </a>
+            <p class="text-muted">Em estoque: {{produto['estoqueLoja']}} UN Departamento: {{produto['departamentos']}}</p>
+            <div class="d-flex justify-content-center total font-weight-bold mt-4">
+                <span>Total:  </span><span>R${{ produto['preco'] }}</span>
+    
+            </div>
+        </div>
+</div>
+</div>
+</div>
+{%endif%}
+{% endfor %}
+{% endblock %}

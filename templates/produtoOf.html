@@ -1,0 +1,106 @@
+{% extends 'baseOf.html' %}
+
+{% block content %}
+{% set precopromo= produto['preco']%}
+<br>
+<div class="baseProd">
+  <div class="d-flex justify-content-between">
+    <div>
+      <a href="#" parametro="imagem1.jpg" class="abrirModal"><img src="/static/images/{{ produto['anexos'] }}"
+          id="imagens" class="m-3"></a>
+      <div class="modal fade" id="myModal" tabindex="-1" role="dialog" aria-labelledby="myLargeModalLabel">
+        <div class="modal-dialog modal-lg" role="document">
+          <div class="modal-content">
+            <div class="modal-header">
+              <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span
+                  aria-hidden="true">&times;</span></button>
+            </div>
+            <div class="modal-body text-center">
+              <img src="" style="width: 100%;" />
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Script esta no static/js/main.js -->
+    <div class="pt-3 pr-3 d-flex justify-content-center flex-column">
+      <div class="d-flex">
+        <form>
+          <div class="input-group mb-3">
+            <input type="text" name="cep" id="txtCep" class="form-control" placeholder="CEP" aria-label="CEP"
+              aria-describedby="consultar-cep">
+            <div class="input-group-append">
+              <button class="btn btn-outline-secondary btn-sm " type="button" id="consultar-cep">Consultar</button>
+            </div>
+          </div>
+        </form>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          Endereço
+        </div>
+        <div class="card-body">
+          <p class="card-text">
+            <span id="end"></span> <br>
+            <span id="bairro"></span> <br>
+            <span id="cidade"></span> <br>
+            <span id="cep"></span> <br>
+            <span id="comple"></span>
+          </p>
+        </div> <!-- /card-body -->
+      </div> <!-- /card -->
+
+    </div>
+
+    <div class="d-flex flex-column justify-content-center border-dark border-left pl-3 mr-3" id="largComp">
+      <div class="d-flex flex-column align-content-center">
+        <h2 id="nomeProduto" class="text-primary">{{ produto['produto'] }}</h2>
+        <h5 class="d-flex justify-content-end">Em estoque: {{produto['estoqueLoja']}}</h5>
+
+        <!-- Tratando o valor -->
+
+        <script>
+          x = parseInt("{{precopromo}}")
+          acrecimo = x * 0.35
+          valor = x + acrecimo
+          porcentagem = parseInt(100 * (1 - (x / valor)))
+        </script>
+        <div class="d-flex justify-content-end">
+          <del>
+            <p class="d-flex justify-content-end h6" id="promo"></p>
+          </del>
+          <p class="d-flex justify-content-end h6 pl-1" id="desconto"></p>
+        </div>
+        <script>document.getElementById('promo').innerHTML = 'R$' + valor;</script>
+        <script>document.getElementById('desconto').innerHTML = '-' + porcentagem + '%';</script>
+
+        <h1 class="d-flex justify-content-end">R${{produto['preco']}} </h1>
+        <button type="button" class="btn btn-primary btn-lg" onclick="alerta()">COMPRAR</button>
+
+      </div>
+    </div>
+  </div>
+  <div class="border-top border-dark">
+    <label class="pl-3" for="produto"><b>Descrição:</b></label>
+    <p class="pl-3">{{ produto['descricao'] }}</p>
+  </div>
+  <br>
+</div>
+
+
+<script>$(".abrirModal").click(function () {
+    var url = $(this).find("img").attr("src");
+    $("#myModal img").attr("src", url);
+    $("#myModal").modal("show");
+  });</script>
+
+<script>
+  function alerta() {
+    alert("quem sabe futuramente");
+  }
+</script>
+
+
+{% endblock %}
