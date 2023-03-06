@@ -12,12 +12,12 @@ from werkzeug.utils import secure_filename
 from werkzeug.exceptions import abort
 from zeep import Client
 
-
+db = SQLAlchemy()
 app = Flask(__name__, static_url_path='/static')
 UPLOAD_FOLDER = 'static/images/'
-db = SQLAlchemy(app)
 bcrypt = Bcrypt(app)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///database.db'
+app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 app.config['SECRET_KEY'] = 'your secret key'
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
